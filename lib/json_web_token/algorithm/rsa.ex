@@ -43,7 +43,10 @@ defmodule JsonWebToken.Algorithm.Rsa do
   end
 
   @doc "RSA key modulus, n"
-  def modulus(key), do: :crypto.mpint(Enum.at key, 1)
+  def modulus([_exponent, modulus | _rest]) do
+    bytes_list = Integer.digits(modulus, 256)
+    :erlang.list_to_binary(bytes_list)
+  end
 
   defp validate_params(sha_bits, key) do
     Common.validate_bits(sha_bits)
