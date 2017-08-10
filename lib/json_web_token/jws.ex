@@ -5,6 +5,7 @@ defmodule JsonWebToken.Jws do
   see http://tools.ietf.org/html/rfc7515
   """
 
+  alias JsonWebToken.Format.Base64Url
   alias JsonWebToken.Jwa
   alias JsonWebToken.Util
 
@@ -43,22 +44,21 @@ defmodule JsonWebToken.Jws do
   end
 
   defp signing_input(header, payload) do
-    "#{to_json_base64_encode(header)}.#{Base.url_encode64(payload, padding: false)}"
+    "#{to_json_base64_encode header}.#{Base64Url.encode payload}"
   end
 
   defp to_json_base64_encode(header) do
     header
     |> Poison.encode
     |> header_json
-    |> Base.url_encode64(padding: false)
+    |> Base64Url.encode
   end
 
   defp header_json({:ok, json}), do: json
   defp header_json({:error, _}), do: raise "Failed to encode header as JSON"
 
   defp signature(algorithm, key, signing_input) do
-    Jwa.sign(algorithm, key, signing_input)
-    |> Base.url_encode64(padding: false)
+    Base64Url.encode(Jwa.sign algorithm, key, signing_input)
   end
 
   defp check_alg_value_none("none"), do: true
@@ -86,7 +86,7 @@ defmodule JsonWebToken.Jws do
   defp decoded_header_json_to_map(jws) do
     [head | _] = String.split(jws, ".")
     head
-    |> Base.url_decode64!(padding: false)
+    |> Base64Url.decode
     |> Poison.decode(keys: :atoms)
     |> header_map
   end
@@ -114,6 +114,6 @@ defmodule JsonWebToken.Jws do
   defp signature_verify?(_, _, nil), do: false
   defp signature_verify?(parts, algorithm, key) do
     [header, message, signature] = parts
-    Jwa.verify?(Base.url_decode64!(signature, padding: false), algorithm, key, "#{header}.#{message}")
+    Jwa.verify?(Base64Url.decode(signature), algorithm, key, "#{header}.#{message}")
   end
 end

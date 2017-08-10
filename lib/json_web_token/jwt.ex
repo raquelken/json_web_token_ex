@@ -7,6 +7,7 @@ defmodule JsonWebToken.Jwt do
   see http://tools.ietf.org/html/rfc7519
   """
 
+  alias JsonWebToken.Format.Base64Url
   alias JsonWebToken.Jws
 
   @algorithm_default "HS256"
@@ -41,15 +42,12 @@ defmodule JsonWebToken.Jwt do
 
   Filters out unsupported claims options and ignores any encryption keys
   """
-  def config_header(options) when is_map(options) do
-    {jose_registered_headers, _other_headers} = Map.split(options, @header_jose_keys)
+  def config_header(options) do
+    {jose_registered_headers, _other_headers} = Dict.split(options, @header_jose_keys)
 
     @header_default
-    |> Map.merge(jose_registered_headers)
-    |> Map.merge(%{alg: algorithm(options)})
-  end
-  def config_header(options) when is_list(options) do
-    options |> Map.new |> config_header
+    |> Dict.merge(jose_registered_headers)
+    |> Dict.merge(alg: algorithm(options))
   end
 
   defp algorithm(options) do
@@ -99,7 +97,7 @@ defmodule JsonWebToken.Jwt do
 
   defp payload_to_map(encoded_payload) do
     encoded_payload
-    |> Base.url_decode64!(padding: false)
+    |> Base64Url.decode
     |> Poison.decode(keys: :atoms)
     |> claims_map
   end
